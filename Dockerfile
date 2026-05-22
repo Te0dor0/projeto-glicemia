@@ -1,11 +1,8 @@
 # ===== BUILD STAGE =====
-FROM eclipse-temurin:17-jdk-alpine AS build
+FROM maven:3.8.4-openjdk-17-slim AS build
 WORKDIR /app
 
-# Instala Maven
-RUN apk add --no-cache maven
-
-# Copia apenas o pom.xml primeiro para aproveitar o cache das dependências
+# Copia o pom.xml e as dependências primeiro
 COPY backend/pom.xml .
 RUN mvn dependency:go-offline -B
 
@@ -17,13 +14,12 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Cria diretório para o Excel se necessário
+# Cria diretório para o Excel
 RUN mkdir -p /app/data
 
-# Copia o jar gerado no estágio de build
+# Copia o jar gerado
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-# Comando para rodar a aplicação
 ENTRYPOINT ["java", "-jar", "app.jar"]
