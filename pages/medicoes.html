@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Medições 2H • Glicemia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<div class="nebula"></div>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="brand"><span class="brand-moon">☽</span> Glicemia</div></div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebarAvatar">U</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarUsername">—</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard.html" href="dashboard.html"><span class="nav-icon">✦</span> Dashboard</a>
+      <a class="nav-item" data-page="refeicoes.html" href="refeicoes.html"><span class="nav-icon">🍽</span> Refeições</a>
+      <a class="nav-item" data-page="medicoes.html" href="medicoes.html"><span class="nav-icon">📊</span> Medições 2H</a>
+      <a class="nav-item" data-page="estrelas.html" href="estrelas.html"><span class="nav-icon">★</span> Estrelas da Lui</a>
+      <a class="nav-item admin-only" data-page="logs.html" href="logs.html"><span class="nav-icon">📋</span> Logs</a>
+    </nav>
+    <div class="sidebar-bottom"><button class="btn-logout" id="btnLogout">↩ Sair</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">📊 Medições 2H</h1>
+      <p class="page-subtitle">Registro de glicemia 2 horas após as refeições</p>
+    </div>
+
+    <!-- PENDÊNCIAS PARA REGISTRAR -->
+    <div class="table-section" style="margin-bottom:2rem">
+      <div class="table-header">
+        <span class="table-title">⏳ Pendências para Registrar</span>
+        <span class="text-sm text-muted" id="countPend"></span>
+      </div>
+      <div id="pendenciasBody"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>
+
+    <!-- HISTÓRICO DE MEDIÇÕES -->
+    <div class="table-section">
+      <div class="table-header">
+        <span class="table-title">✦ Histórico de Medições</span>
+      </div>
+      <div id="historicoBody"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL REGISTRAR MEDIÇÃO -->
+<div class="modal-overlay hidden" id="modalMedicao">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📊 Registrar Medição 2H</span>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div style="margin-bottom:1rem;padding:0.8rem;background:rgba(232,201,106,0.06);border:1px solid rgba(232,201,106,0.15);border-radius:8px;">
+      <div class="text-sm text-muted">Refeição</div>
+      <div style="font-family:'Cinzel',serif;color:var(--star-pale)" id="infoRefeicao">—</div>
+      <div class="text-sm text-muted mt-1">Medição prevista para: <span id="infoHorario" style="color:var(--amber-warn)">—</span></div>
+    </div>
+    <form id="formMedicao">
+      <input type="hidden" id="mRefeicaoId"/>
+      <div class="form-group">
+        <label>Horário da Medição *</label>
+        <input type="datetime-local" id="mHorario" required/>
+      </div>
+      <div class="form-group">
+        <label>Valor da Glicemia (mg/dL) *</label>
+        <input type="number" id="mValor" min="0" max="600" placeholder="Ex: 115" required/>
+      </div>
+      <div class="form-group">
+        <label>Observação</label>
+        <textarea id="mObservacao" rows="2" placeholder="Opcional..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnSalvar">✦ Registrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script>
+// Estrelas de fundo
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 120; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${Math.random()*2+1}px;height:${Math.random()*2+1}px;animation-delay:${Math.random()*4}s;animation-duration:${Math.random()*3+2}s`;
+  starsEl.appendChild(s);
+}
+
+if (!UI.requireAuth()) throw 0;
+UI.setupNav();
+
+// Verificar se viemos de um link direto com refeicaoId
+const urlParams = new URLSearchParams(window.location.search);
+const refeicaoIdParam = urlParams.get('refeicaoId');
+
+async function loadPendencias() {
+  const el = document.getElementById('pendenciasBody');
+  try {
+    const lista = await API.getPendencias();
+    document.getElementById('countPend').textContent = lista.length ? `${lista.length} pendente(s)` : 'Nenhuma pendência';
+    if (!lista.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><p>Todas as medições estão em dia!</p></div>';
+      return;
+    }
+    el.innerHTML = `<table>
+      <thead><tr><th>Refeição</th><th>Medição prevista</th><th>Status</th><th>Ação</th></tr></thead>
+      <tbody>${lista.map(p => `
+        <tr class="${p.atrasada ? 'row-danger' : ''}">
+          <td><strong>${p.tipoRefeicao}</strong></td>
+          <td>${UI.formatDateTime(p.horarioPrevisto)}</td>
+          <td>${p.atrasada
+            ? '<span class="badge badge-danger">⚠ Atrasada</span>'
+            : '<span class="badge badge-pending">⏳ Pendente</span>'}</td>
+          <td><button class="btn btn-primary" onclick="abrirModal(${p.refeicaoId}, '${p.tipoRefeicao}', '${p.horarioPrevisto}')">
+            📊 Registrar
+          </button></td>
+        </tr>
+      `).join('')}</tbody>
+    </table>`;
+
+    // Se viemos com refeicaoId, abrir modal automaticamente
+    if (refeicaoIdParam) {
+      const p = lista.find(x => x.refeicaoId == refeicaoIdParam);
+      if (p) abrirModal(p.refeicaoId, p.tipoRefeicao, p.horarioPrevisto);
+    }
+  } catch (err) {
+    el.innerHTML = `<div class="empty-state"><p class="text-red">Erro: ${err.message}</p></div>`;
+  }
+}
+
+async function loadHistorico() {
+  const el = document.getElementById('historicoBody');
+  try {
+    const refeicoes = await API.getRefeicoes();
+    const todasMedicoes = [];
+    for (const r of refeicoes) {
+      if (r.medicoes && r.medicoes.length) {
+        r.medicoes.forEach(m => todasMedicoes.push({...m, tipoRefeicao: r.tipoDescricao, usuario: r.usuarioUsername}));
+      }
+    }
+    if (!todasMedicoes.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Nenhuma medição registrada ainda</p></div>';
+      return;
+    }
+    todasMedicoes.sort((a,b) => new Date(b.horarioMedicao) - new Date(a.horarioMedicao));
+    el.innerHTML = `<table>
+      <thead><tr><th>Refeição</th><th>Horário</th><th>Glicemia</th><th>Status</th><th>Observação</th></tr></thead>
+      <tbody>${todasMedicoes.map(m => `
+        <tr>
+          <td>${m.tipoRefeicao}</td>
+          <td>${UI.formatDateTime(m.horarioMedicao)}</td>
+          <td class="${m.valorGlicemia < 50 || m.valorGlicemia > 150 ? 'text-red' : 'text-green'}">
+            <strong>${m.valorGlicemia} mg/dL</strong>
+          </td>
+          <td>${UI.statusBadge(m.statusGlicemia)}</td>
+          <td class="text-muted">${m.observacao || '—'}</td>
+        </tr>
+      `).join('')}</tbody>
+    </table>`;
+  } catch (err) {
+    el.innerHTML = `<div class="empty-state"><p class="text-red">Erro: ${err.message}</p></div>`;
+  }
+}
+
+function abrirModal(refeicaoId, tipo, horarioPrevisto) {
+  document.getElementById('mRefeicaoId').value = refeicaoId;
+  document.getElementById('infoRefeicao').textContent = tipo;
+  document.getElementById('infoHorario').textContent = UI.formatDateTime(horarioPrevisto);
+  const now = new Date(); now.setSeconds(0,0);
+  document.getElementById('mHorario').value = now.toISOString().slice(0,16);
+  document.getElementById('mValor').value = '';
+  document.getElementById('mObservacao').value = '';
+  document.getElementById('modalMedicao').classList.remove('hidden');
+}
+
+function fecharModal() {
+  document.getElementById('modalMedicao').classList.add('hidden');
+}
+
+document.getElementById('formMedicao').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('btnSalvar');
+  btn.disabled = true; btn.textContent = 'Registrando...';
+  const refeicaoId = document.getElementById('mRefeicaoId').value;
+  const payload = {
+    horario: document.getElementById('mHorario').value,
+    valor: parseInt(document.getElementById('mValor').value),
+    observacao: document.getElementById('mObservacao').value || null,
+  };
+  try {
+    const result = await API.registrarMedicao2H(refeicaoId, payload);
+    fecharModal();
+    const status = result.statusGlicemia;
+    if (status === 'PERIGO_ALTO') UI.toast(`⬆ Glicemia alta: ${result.valorGlicemia} mg/dL`, 'error');
+    else if (status === 'PERIGO_BAIXO') UI.toast(`⬇ Glicemia baixa: ${result.valorGlicemia} mg/dL`, 'error');
+    else UI.toast(`✦ Medição registrada: ${result.valorGlicemia} mg/dL`);
+    loadPendencias();
+    loadHistorico();
+  } catch (err) {
+    UI.toast('Erro: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '✦ Registrar';
+  }
+});
+
+loadPendencias();
+loadHistorico();
+</script>
+<style>
+.row-danger td { background: rgba(255,85,114,0.04); }
+</style>
+</body>
+</html>

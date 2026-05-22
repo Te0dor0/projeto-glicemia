@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Refeições • Glicemia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<div class="nebula"></div>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="brand"><span class="brand-moon">☽</span> Glicemia</div></div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebarAvatar">U</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarUsername">—</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard.html" href="dashboard.html"><span class="nav-icon">✦</span> Dashboard</a>
+      <a class="nav-item" data-page="refeicoes.html" href="refeicoes.html"><span class="nav-icon">🍽</span> Refeições</a>
+      <a class="nav-item" data-page="medicoes.html" href="medicoes.html"><span class="nav-icon">📊</span> Medições 2H</a>
+      <a class="nav-item" data-page="estrelas.html" href="estrelas.html"><span class="nav-icon">★</span> Estrelas da Lui</a>
+      <a class="nav-item admin-only" data-page="logs.html" href="logs.html"><span class="nav-icon">📋</span> Logs</a>
+    </nav>
+    <div class="sidebar-bottom"><button class="btn-logout" id="btnLogout">↩ Sair</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <h1 class="page-title">🍽 Refeições</h1>
+        <p class="page-subtitle">Registro de refeições e glicemia</p>
+      </div>
+      <button class="btn btn-primary" onclick="abrirModal()">+ Nova Refeição</button>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header">
+        <span class="table-title">Histórico de Refeições</span>
+      </div>
+      <div id="tabelaRefeicoes" style="overflow-x:auto">
+        <div class="loading"><div class="spinner"></div> Carregando...</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL NOVA REFEIÇÃO -->
+<div class="modal-overlay hidden" id="modalRefeicao">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitulo">✦ Nova Refeição</span>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+
+    <form id="formRefeicao">
+      <input type="hidden" id="editId"/>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tipo de Refeição *</label>
+          <select id="fTipo" required>
+            <option value="">Selecione...</option>
+            <option value="CAFE">Café da Manhã</option>
+            <option value="LANCHE">Lanche</option>
+            <option value="ALMOCO">Almoço</option>
+            <option value="TARDE">Lanche da Tarde</option>
+            <option value="JANTA">Janta</option>
+            <option value="CEIA">Ceia</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Glicemia Antes (mg/dL) *</label>
+          <input type="number" id="fValorAntes" min="0" max="600" placeholder="Ex: 110" required/>
+        </div>
+        <div class="form-group">
+          <label>Horário Medição Antes *</label>
+          <input type="datetime-local" id="fMedAntes" required/>
+        </div>
+        <div class="form-group">
+          <label>Início da Refeição *</label>
+          <input type="datetime-local" id="fInicio" required/>
+        </div>
+        <div class="form-group">
+          <label>Fim da Refeição *</label>
+          <input type="datetime-local" id="fFim" required/>
+        </div>
+        <div class="form-group form-full">
+          <label>Observação</label>
+          <textarea id="fObservacao" rows="2" placeholder="Opcional..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnSalvar">✦ Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script>
+// Estrelas
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 120; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${Math.random()*2+1}px;height:${Math.random()*2+1}px;animation-delay:${Math.random()*4}s;animation-duration:${Math.random()*3+2}s`;
+  starsEl.appendChild(s);
+}
+
+if (!UI.requireAuth()) throw 0;
+UI.setupNav();
+
+const isAdmin = API.isAdmin();
+
+async function loadRefeicoes() {
+  const el = document.getElementById('tabelaRefeicoes');
+  try {
+    const lista = await API.getRefeicoes();
+    if (!lista.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">🍽</div><p>Nenhuma refeição registrada</p></div>';
+      return;
+    }
+    el.innerHTML = `<table>
+      <thead><tr>
+        <th>Tipo</th><th>Data/Hora</th>
+        <th>Glicemia Antes</th><th>Pendência</th>
+        <th>Usuário</th>${isAdmin ? '<th>Ações</th>' : ''}
+      </tr></thead>
+      <tbody>
+        ${lista.map(r => `
+          <tr>
+            <td><strong>${r.tipoDescricao}</strong></td>
+            <td>${UI.formatDateTime(r.horarioInicio)}</td>
+            <td class="${r.valorAntes < 50 || r.valorAntes > 150 ? 'text-red' : 'text-green'}">${r.valorAntes} mg/dL</td>
+            <td>${UI.statusBadge(r.statusPendencia === 'SEM_PENDENCIA' ? 'CONCLUIDO' : r.statusPendencia)}</td>
+            <td>${r.usuarioUsername}</td>
+            ${isAdmin ? `<td>
+              <button class="btn btn-ghost" onclick="editarRefeicao(${r.id})" title="Editar">✏</button>
+              <button class="btn btn-danger" onclick="deletarRefeicao(${r.id})" title="Excluir">🗑</button>
+            </td>` : ''}
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+  } catch (err) {
+    el.innerHTML = `<div class="empty-state"><p class="text-red">Erro ao carregar: ${err.message}</p></div>`;
+  }
+}
+
+function abrirModal(dados = null) {
+  document.getElementById('editId').value = dados?.id || '';
+  document.getElementById('modalTitulo').textContent = dados ? '✏ Editar Refeição' : '✦ Nova Refeição';
+  document.getElementById('fTipo').value = dados?.tipoRefeicao || '';
+  document.getElementById('fValorAntes').value = dados?.valorAntes || '';
+  document.getElementById('fMedAntes').value = dados?.medicaoAntesHorario?.slice(0,16) || localNow();
+  document.getElementById('fInicio').value = dados?.horarioInicio?.slice(0,16) || localNow();
+  document.getElementById('fFim').value = dados?.horarioFim?.slice(0,16) || localNow();
+  document.getElementById('fObservacao').value = dados?.observacao || '';
+  document.getElementById('modalRefeicao').classList.remove('hidden');
+}
+
+function fecharModal() {
+  document.getElementById('modalRefeicao').classList.add('hidden');
+  document.getElementById('formRefeicao').reset();
+}
+
+function localNow() {
+  const now = new Date();
+  now.setSeconds(0, 0);
+  return now.toISOString().slice(0,16);
+}
+
+async function editarRefeicao(id) {
+  try {
+    const lista = await API.getRefeicoes();
+    const r = lista.find(x => x.id === id);
+    if (r) abrirModal(r);
+  } catch {}
+}
+
+async function deletarRefeicao(id) {
+  if (!confirm('Excluir esta refeição e todos os dados associados?')) return;
+  try {
+    await API.deletarRefeicao(id);
+    UI.toast('Refeição excluída com sucesso');
+    loadRefeicoes();
+  } catch (err) {
+    UI.toast('Erro ao excluir: ' + err.message, 'error');
+  }
+}
+
+document.getElementById('formRefeicao').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('btnSalvar');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  const id = document.getElementById('editId').value;
+  const payload = {
+    tipo: document.getElementById('fTipo').value,
+    medicaoAntesHora: document.getElementById('fMedAntes').value,
+    valorAntes: parseInt(document.getElementById('fValorAntes').value),
+    inicio: document.getElementById('fInicio').value,
+    fim: document.getElementById('fFim').value,
+    observacao: document.getElementById('fObservacao').value || null,
+  };
+
+  try {
+    if (id) {
+      await API.atualizarRefeicao(id, payload);
+      UI.toast('Refeição atualizada!');
+    } else {
+      await API.criarRefeicao(payload);
+      UI.toast('Refeição registrada! Pendência de 2h criada automaticamente ✦');
+    }
+    fecharModal();
+    loadRefeicoes();
+  } catch (err) {
+    UI.toast('Erro: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✦ Salvar';
+  }
+});
+
+loadRefeicoes();
+</script>
+</body>
+</html>
