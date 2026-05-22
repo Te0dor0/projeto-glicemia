@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard • Glicemia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<div class="nebula"></div>
+
+<div class="app-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand"><span class="brand-moon">☽</span> Glicemia</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebarAvatar">U</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarUsername">—</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard.html" href="dashboard.html">
+        <span class="nav-icon">✦</span> Dashboard
+      </a>
+      <a class="nav-item" data-page="refeicoes.html" href="refeicoes.html">
+        <span class="nav-icon">🍽</span> Refeições
+        <span class="nav-badge hidden" id="badgePendencias">0</span>
+      </a>
+      <a class="nav-item" data-page="medicoes.html" href="medicoes.html">
+        <span class="nav-icon">📊</span> Medições 2H
+      </a>
+      <a class="nav-item" data-page="estrelas.html" href="estrelas.html">
+        <span class="nav-icon">★</span> Estrelas da Lui
+      </a>
+      <a class="nav-item admin-only" data-page="logs.html" href="logs.html">
+        <span class="nav-icon">📋</span> Logs
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="btn-logout" id="btnLogout">↩ Sair</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">✦ Dashboard</h1>
+      <p class="page-subtitle">Visão geral do controle glicêmico</p>
+    </div>
+
+    <!-- ALERTAS -->
+    <div class="alerts-section" id="alertsSection"></div>
+
+    <!-- CARDS MÉTRICAS -->
+    <div class="cards-grid" id="cardsGrid">
+      <div class="loading"><div class="spinner"></div> Carregando...</div>
+    </div>
+
+    <!-- PENDÊNCIAS -->
+    <div class="table-section" id="pendenciasSection" style="margin-bottom:2rem">
+      <div class="table-header">
+        <span class="table-title">⏳ Medições Pendentes</span>
+        <a href="medicoes.html" class="btn btn-ghost text-sm">Ver todas</a>
+      </div>
+      <div id="pendenciasBody"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="table-section">
+      <div class="table-header">
+        <span class="table-title">🍽 Últimas Refeições</span>
+        <a href="refeicoes.html" class="btn btn-ghost text-sm">Ver todas</a>
+      </div>
+      <div id="historico" style="overflow-x:auto">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script>
+// Estrelas de fundo
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 150; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${Math.random()*2+1}px;height:${Math.random()*2+1}px;animation-delay:${Math.random()*4}s;animation-duration:${Math.random()*3+2}s`;
+  starsEl.appendChild(s);
+}
+
+if (!UI.requireAuth()) throw 0;
+UI.setupNav();
+
+async function loadDashboard() {
+  try {
+    const data = await API.getDashboard();
+
+    // Alertas
+    const alertsEl = document.getElementById('alertsSection');
+    if (data.alertas && data.alertas.length) {
+      alertsEl.innerHTML = data.alertas.map(a => {
+        const cls = a.includes('CRÍTICO') ? 'alert-danger' : a.includes('elevada') ? 'alert-warning' : 'alert-info';
+        return `<div class="alert ${cls}">${a}</div>`;
+      }).join('');
+    }
+
+    // Badge pendências
+    if (data.pendencias && data.pendencias.length) {
+      const b = document.getElementById('badgePendencias');
+      b.textContent = data.pendencias.length;
+      b.classList.remove('hidden');
+    }
+
+    // CARDS
+    const glicemiaClass = UI.glicemiaClass(data.ultimaGlicemia);
+    const glicemiaStatus = data.statusUltimaGlicemia === 'NORMAL' ? '✦ Nível seguro'
+      : data.statusUltimaGlicemia === 'PERIGO_BAIXO' ? '⬇ Hipoglicemia!'
+      : data.statusUltimaGlicemia === 'PERIGO_ALTO' ? '⬆ Hiperglicemia!'
+      : 'Sem leitura';
+
+    document.getElementById('cardsGrid').innerHTML = `
+      <div class="card ${glicemiaClass}">
+        <div class="card-label">💉 Última Glicemia</div>
+        <div class="card-value">${data.ultimaGlicemia ?? '—'}<span class="card-unit">mg/dL</span></div>
+        <div class="card-status">${glicemiaStatus}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">⏳ Pendências</div>
+        <div class="card-value">${data.pendencias?.length ?? 0}</div>
+        <div class="card-status text-muted">medições aguardando</div>
+      </div>
+      <div class="card">
+        <div class="card-label">📈 Taxa de Medições</div>
+        <div class="card-value">${data.taxaMedicoes}<span class="card-unit">%</span></div>
+        <div class="progress-bar-wrap"><div class="progress-bar" style="width:${data.taxaMedicoes}%"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-label">★ Estrelas da Lui</div>
+        <div class="card-value" style="color:var(--star-gold)">${data.totalEstrelas ?? 0}</div>
+        <div class="card-status text-muted">pontos conquistados</div>
+      </div>
+    `;
+
+    // Pendências
+    const pendBody = document.getElementById('pendenciasBody');
+    if (!data.pendencias || data.pendencias.length === 0) {
+      pendBody.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><p>Nenhuma medição pendente</p></div>';
+    } else {
+      pendBody.innerHTML = `<table>
+        <thead><tr><th>Refeição</th><th>Medição prevista</th><th>Status</th><th>Ação</th></tr></thead>
+        <tbody>${data.pendencias.map(p => `
+          <tr>
+            <td>${p.tipoRefeicao}</td>
+            <td>${UI.formatDateTime(p.horarioPrevisto)}</td>
+            <td>${p.atrasada ? '<span class="badge badge-danger">⚠ Atrasada</span>' : UI.statusBadge('PENDENTE')}</td>
+            <td><a href="medicoes.html?refeicaoId=${p.refeicaoId}" class="btn btn-primary">Registrar</a></td>
+          </tr>
+        `).join('')}</tbody>
+      </table>`;
+    }
+
+    // Histórico
+    const histEl = document.getElementById('historico');
+    if (!data.ultimasRefeicoes || data.ultimasRefeicoes.length === 0) {
+      histEl.innerHTML = '<div class="empty-state"><div class="empty-icon">🍽</div><p>Nenhuma refeição registrada</p></div>';
+    } else {
+      histEl.innerHTML = `<table>
+        <thead><tr><th>Tipo</th><th>Início</th><th>Usuário</th><th>Glicemia antes</th></tr></thead>
+        <tbody>${data.ultimasRefeicoes.map(r => `
+          <tr>
+            <td>${r.tipoDescricao}</td>
+            <td>${UI.formatDateTime(r.horarioInicio)}</td>
+            <td>${r.usuarioUsername}</td>
+            <td class="${r.valorAntes < 50 || r.valorAntes > 150 ? 'text-red' : 'text-green'}">${r.valorAntes} mg/dL</td>
+          </tr>
+        `).join('')}</tbody>
+      </table>`;
+    }
+
+  } catch (err) {
+    console.error(err);
+    UI.toast('Erro ao carregar dashboard', 'error');
+  }
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

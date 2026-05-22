@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Logs • Glicemia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<div class="nebula"></div>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="brand"><span class="brand-moon">☽</span> Glicemia</div></div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebarAvatar">U</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarUsername">—</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard.html" href="dashboard.html"><span class="nav-icon">✦</span> Dashboard</a>
+      <a class="nav-item" data-page="refeicoes.html" href="refeicoes.html"><span class="nav-icon">🍽</span> Refeições</a>
+      <a class="nav-item" data-page="medicoes.html" href="medicoes.html"><span class="nav-icon">📊</span> Medições 2H</a>
+      <a class="nav-item" data-page="estrelas.html" href="estrelas.html"><span class="nav-icon">★</span> Estrelas da Lui</a>
+      <a class="nav-item admin-only" data-page="logs.html" href="logs.html"><span class="nav-icon">📋</span> Logs</a>
+    </nav>
+    <div class="sidebar-bottom"><button class="btn-logout" id="btnLogout">↩ Sair</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <h1 class="page-title">📋 Logs de Auditoria</h1>
+        <p class="page-subtitle">Histórico completo de ações no sistema</p>
+      </div>
+      <div style="display:flex;gap:0.8rem;align-items:center">
+        <select id="filtroAcao" class="form-group" style="margin:0;padding:0.5rem 0.8rem;font-size:0.85rem;min-width:160px" onchange="aplicarFiltro()">
+          <option value="">Todas as ações</option>
+          <option value="CRIAR_REFEICAO">Criar Refeição</option>
+          <option value="EDITAR_REFEICAO">Editar Refeição</option>
+          <option value="DELETAR_REFEICAO">Deletar Refeição</option>
+          <option value="REGISTRAR_MEDICAO_2H">Medição 2H</option>
+          <option value="ADICIONAR_ESTRELA">Adicionar Estrela</option>
+          <option value="REMOVER_ESTRELA">Remover Estrela</option>
+        </select>
+        <button class="btn btn-ghost" onclick="loadLogs()">↻ Atualizar</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="cards-grid" id="statsCards" style="margin-bottom:2rem">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+
+    <!-- TABELA LOGS -->
+    <div class="table-section">
+      <div class="table-header">
+        <span class="table-title">📋 Últimas 50 ações</span>
+        <span class="text-sm text-muted" id="countLogs"></span>
+      </div>
+      <div id="tabelaLogs" style="overflow-x:auto">
+        <div class="loading"><div class="spinner"></div> Carregando logs...</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script>
+// Estrelas de fundo
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 100; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${Math.random()*2+0.5}px;height:${Math.random()*2+0.5}px;animation-delay:${Math.random()*4}s;animation-duration:${Math.random()*3+2}s`;
+  starsEl.appendChild(s);
+}
+
+if (!UI.requireAuth()) throw 0;
+UI.setupNav();
+
+// Redirecionar se não for admin
+if (!API.isAdmin()) {
+  window.location.href = 'dashboard.html';
+  throw 0;
+}
+
+let todosLogs = [];
+
+const acaoLabel = {
+  CRIAR_REFEICAO:     { icon: '🍽', label: 'Criar Refeição', cls: 'badge-done' },
+  EDITAR_REFEICAO:    { icon: '✏', label: 'Editar Refeição', cls: 'badge-pending' },
+  DELETAR_REFEICAO:   { icon: '🗑', label: 'Deletar Refeição', cls: 'badge-danger' },
+  REGISTRAR_MEDICAO_2H: { icon: '📊', label: 'Medição 2H', cls: 'badge-normal' },
+  ADICIONAR_ESTRELA:  { icon: '★', label: 'Adicionar Estrela', cls: 'badge-normal' },
+  REMOVER_ESTRELA:    { icon: '☆', label: 'Remover Estrela', cls: 'badge-danger' },
+};
+
+function badgeAcao(acao) {
+  const info = acaoLabel[acao] || { icon: '•', label: acao, cls: 'badge-done' };
+  return `<span class="badge ${info.cls}">${info.icon} ${info.label}</span>`;
+}
+
+async function loadLogs() {
+  const el = document.getElementById('tabelaLogs');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    todosLogs = await API.getLogs();
+
+    // Stats
+    const counts = {};
+    todosLogs.forEach(l => { counts[l.acao] = (counts[l.acao] || 0) + 1; });
+    document.getElementById('statsCards').innerHTML = `
+      <div class="card"><div class="card-label">📋 Total de Ações</div><div class="card-value">${todosLogs.length}</div></div>
+      <div class="card"><div class="card-label">🍽 Refeições</div><div class="card-value">${(counts.CRIAR_REFEICAO||0)}</div><div class="card-status text-muted">registradas</div></div>
+      <div class="card"><div class="card-label">📊 Medições 2H</div><div class="card-value">${(counts.REGISTRAR_MEDICAO_2H||0)}</div><div class="card-status text-muted">realizadas</div></div>
+      <div class="card"><div class="card-label">★ Estrelas</div><div class="card-value" style="color:var(--star-gold)">${(counts.ADICIONAR_ESTRELA||0)}</div><div class="card-status text-muted">concedidas</div></div>
+    `;
+
+    aplicarFiltro();
+  } catch (err) {
+    el.innerHTML = `<div class="empty-state"><p class="text-red">Erro: ${err.message}</p></div>`;
+  }
+}
+
+function aplicarFiltro() {
+  const filtro = document.getElementById('filtroAcao').value;
+  const lista = filtro ? todosLogs.filter(l => l.acao === filtro) : todosLogs;
+  const el = document.getElementById('tabelaLogs');
+  document.getElementById('countLogs').textContent = `${lista.length} registro(s)`;
+
+  if (!lista.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Nenhum registro encontrado</p></div>';
+    return;
+  }
+
+  el.innerHTML = `<table>
+    <thead><tr>
+      <th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Detalhes</th>
+    </tr></thead>
+    <tbody>${lista.map(l => `
+      <tr>
+        <td style="white-space:nowrap;color:var(--text-dim)">${UI.formatDateTime(l.timestamp)}</td>
+        <td>
+          <span style="font-family:'Cinzel',serif;font-size:0.85rem;color:${l.usuario === 'Teo' ? 'var(--star-gold)' : 'var(--moon-blue)'}">
+            ${l.usuario || 'SISTEMA'}
+          </span>
+        </td>
+        <td>${badgeAcao(l.acao)}</td>
+        <td class="text-muted" style="font-size:0.85rem;max-width:300px">${l.detalhes || '—'}</td>
+      </tr>
+    `).join('')}</tbody>
+  </table>`;
+}
+
+loadLogs();
+</script>
+</body>
+</html>
