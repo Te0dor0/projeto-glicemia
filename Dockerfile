@@ -2,6 +2,7 @@
 FROM eclipse-temurin:17-jdk-alpine AS build
 WORKDIR /app
 
+# Copia os arquivos do backend para o container
 COPY backend/pom.xml .
 COPY backend/src ./src
 
