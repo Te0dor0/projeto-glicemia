@@ -18,7 +18,7 @@ WORKDIR /app
 RUN mkdir -p /app/data
 
 # Copia o jar gerado
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/target/glicemia-backend-1.0.0.jar app.jar
 
 EXPOSE 8080
 
