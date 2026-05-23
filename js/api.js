@@ -11,20 +11,17 @@ const API = {
   },
 
   async _fetch(method, path, body) {
-    const token = this.getToken();
     const base = typeof CONFIG !== 'undefined' ? CONFIG.API_URL : 'http://localhost:8080';
     const res = await fetch(`${base}${path}`, {
       method,
       headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        'Content-Type': 'application/json'
       },
       ...(body ? { body: JSON.stringify(body) } : {})
     });
 
     if (res.status === 401) {
-      this.logout();
-      throw new Error('Sessão expirada');
+      console.warn('Acesso não autorizado');
     }
 
     if (!res.ok) {
@@ -115,29 +112,21 @@ const UI = {
   },
 
   requireAuth() {
-    if (!API.getToken()) {
-      window.location.href = '../index.html';
-      return false;
-    }
-    return true;
+    return true; // Acesso público liberado
   },
 
   setupNav() {
-    const username = API.getUser();
-    const role = API.getRole();
-    const isAdmin = API.isAdmin();
-
-    // Preenche info do usuário
+    // Preenche info padrão para acesso público
     const nameEl = document.getElementById('sidebarUsername');
     const roleEl = document.getElementById('sidebarRole');
     const avatarEl = document.getElementById('sidebarAvatar');
-    if (nameEl) nameEl.textContent = username || 'Usuário';
-    if (roleEl) roleEl.textContent = isAdmin ? 'Administrador' : 'Usuária';
-    if (avatarEl) avatarEl.textContent = (username || 'U')[0].toUpperCase();
+    if (nameEl) nameEl.textContent = 'Visitante';
+    if (roleEl) roleEl.textContent = 'Acesso Público';
+    if (avatarEl) avatarEl.textContent = 'V';
 
-    // Mostra/oculta itens admin
+    // Sempre mostrar itens admin ou ocultar se preferir (aqui vou mostrar para total transparência)
     document.querySelectorAll('.admin-only').forEach(el => {
-      el.style.display = isAdmin ? '' : 'none';
+      el.style.display = '';
     });
 
     // Marca item ativo
@@ -146,7 +135,8 @@ const UI = {
       if (item.dataset.page === page) item.classList.add('active');
     });
 
-    // Logout
-    document.getElementById('btnLogout')?.addEventListener('click', API.logout.bind(API));
+    // Logout removido para acesso público
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) btnLogout.style.display = 'none';
   }
 };
