@@ -21,16 +21,13 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // Cria usuário Admin (Teo) se não existir
+        // Garante que o usuário Admin (Teo) exista e tenha a senha correta
         Usuario teo = usuarioRepository.findByUsername("Teo").orElse(new Usuario());
-            teo.setUsername("Teo"); teo.setPasswordHash(passwordEncoder.encode("REMOVED_PASSWORD")); teo.setRole("ROLE_ADMIN");
-                    .username("Teo")
-                    .passwordHash(passwordEncoder.encode("REMOVED_PASSWORD"))
-                    .role("ROLE_ADMIN")
-                    .build();
-            usuarioRepository.save(teo);
-            log.info("✅ Usuário Admin 'Teo' criado.");
-        }
+        teo.setUsername("Teo");
+        teo.setPasswordHash(passwordEncoder.encode("REMOVED_PASSWORD"));
+        teo.setRole("ROLE_ADMIN");
+        usuarioRepository.save(teo);
+        log.info("✅ Usuário Admin 'Teo' configurado com sucesso.");
 
         // Cria usuário Lui se não existir
         if (usuarioRepository.findByUsername("Lui").isEmpty()) {
