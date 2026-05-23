@@ -96,7 +96,14 @@
         localStorage.setItem('username', data.username);
         window.location.href = 'pages/dashboard.html';
       } catch (err) {
-        errEl.textContent = '✦ Credenciais inválidas. Tente novamente.';
+        console.error('Login error:', err);
+        if (err.message.includes('401')) {
+          errEl.textContent = '✦ Usuário ou senha incorretos.';
+        } else if (err.message.includes('403')) {
+          errEl.textContent = '✦ Acesso negado pelo servidor (403).';
+        } else {
+          errEl.textContent = '✦ Erro de conexão com o servidor.';
+        }
         btn.disabled = false;
         btn.querySelector('span').textContent = 'Entrar no Sistema';
       }

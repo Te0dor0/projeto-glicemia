@@ -41,6 +41,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/login").permitAll()
+                .requestMatchers("/error").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/estrelas/add", "/api/estrelas/remove").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/refeicoes/**").hasRole("ADMIN")
@@ -56,7 +57,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

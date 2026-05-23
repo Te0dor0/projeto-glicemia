@@ -29,23 +29,23 @@ public class DataInitializer implements CommandLineRunner {
         usuarioRepository.save(teo);
         log.info("✅ Usuário Admin 'Teo' configurado com sucesso.");
 
-        // Cria usuário Lui se não existir
-        if (usuarioRepository.findByUsername("Lui").isEmpty()) {
-            Usuario lui = Usuario.builder()
-                    .username("Lui")
-                    .passwordHash(passwordEncoder.encode("REMOVED_PASSWORD"))
-                    .role("ROLE_USER")
-                    .build();
-            Usuario savedLui = usuarioRepository.save(lui);
+        // Garante que o usuário Lui exista e tenha a senha correta
+        Usuario lui = usuarioRepository.findByUsername("Lui").orElse(new Usuario());
+        lui.setUsername("Lui");
+        lui.setPasswordHash(passwordEncoder.encode("REMOVED_PASSWORD"));
+        lui.setRole("ROLE_USER");
+        Usuario savedLui = usuarioRepository.save(lui);
 
-            // Inicializa estrelas de Lui com 0
+        // Inicializa estrelas de Lui se não existirem
+        if (estrelRepository.findAll().stream().noneMatch(e -> e.getUsuario().getUsername().equals("Lui"))) {
             Estrela estrela = Estrela.builder()
                     .quantidade(0)
                     .usuario(savedLui)
                     .build();
             estrelRepository.save(estrela);
-            log.info("✅ Usuário 'Lui' criado com 0 estrelas.");
+            log.info("✅ Estrelas do usuário 'Lui' inicializadas.");
         }
+        log.info("✅ Usuário 'Lui' configurado com sucesso.");
 
         log.info("🌟 Sistema de Glicemia inicializado com sucesso!");
     }
