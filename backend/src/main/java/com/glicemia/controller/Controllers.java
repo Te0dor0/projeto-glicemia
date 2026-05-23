@@ -34,7 +34,7 @@ class AuthController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid LoginRequest req) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
         log.info("Tentativa de login para o usuário: {}", req.username);
         try {
             authManager.authenticate(
