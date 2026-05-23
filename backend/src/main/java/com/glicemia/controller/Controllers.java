@@ -44,11 +44,13 @@ class AuthController {
             String token = jwtUtil.generateToken(userDetails);
             String role = userDetails.getAuthorities().iterator().next().getAuthority();
 
-            return ResponseEntity.ok(LoginResponse.builder()
-                    .token(token)
-                    .role(role)
-                    .username(req.username)
-                    .build());
+            return ResponseEntity.ok()
+                    .header("Content-Type", "application/json")
+                    .body(LoginResponse.builder()
+                        .token(token)
+                        .role(role)
+                        .username(req.username)
+                        .build());
         } catch (AuthenticationException e) {
             log.warn("Falha na autenticação para {}: {}", req.username, e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
