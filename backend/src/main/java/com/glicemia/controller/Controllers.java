@@ -15,6 +15,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 @CrossOrigin
+@Slf4j
 class AuthController {
 
     private final AuthenticationManager authManager;
@@ -34,10 +36,13 @@ class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequest req) {
+        log.info("Tentativa de login para o usuário: {}", req.username);
         try {
             authManager.authenticate(
                     new UsernamePasswordAuthenticationToken(req.username, req.password));
+            log.info("Autenticação bem-sucedida para: {}", req.username);
         } catch (AuthenticationException e) {
+            log.warn("Falha na autenticação para {}: {}", req.username, e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("{\"error\": \"Credenciais inválidas\"}");
         }
