@@ -9,8 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-//@Component
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
@@ -19,8 +20,10 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public void run(String... args) {
         try {
+            log.info("Iniciando DataInitializer...");
             if (usuarioRepository.findByUsername("Teo").isEmpty()) {
                 Usuario teo = new Usuario();
                 teo.setUsername("Teo");
@@ -29,8 +32,17 @@ public class DataInitializer implements CommandLineRunner {
                 usuarioRepository.save(teo);
                 log.info("✅ Admin 'Teo' criado.");
             }
+            
+            if (usuarioRepository.findByUsername("Lui").isEmpty()) {
+                Usuario lui = new Usuario();
+                lui.setUsername("Lui");
+                lui.setPasswordHash(passwordEncoder.encode("REMOVED_PASSWORD"));
+                lui.setRole("ROLE_USER");
+                usuarioRepository.save(lui);
+                log.info("✅ Usuário 'Lui' criado.");
+            }
         } catch (Exception e) {
-            log.error("Erro ao criar Teo: {}", e.getMessage());
+            log.error("Erro crítico no DataInitializer: {}. O sistema continuará operando.", e.getMessage(), e);
         }
     }
 }
