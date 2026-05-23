@@ -5,3 +5,4 @@ const CONFIG = {
     ? 'http://localhost:8080'
     : 'https://projeto-glicemia.onrender.com'  // ← Substituir após deploy
 };
+// Forcing update v2
