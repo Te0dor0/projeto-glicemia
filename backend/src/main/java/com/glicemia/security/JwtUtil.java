@@ -23,15 +23,13 @@ public class JwtUtil {
     private Long expiration;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        if (keyBytes.length < 32) {
-            String repeatedSecret = secret;
-            while (repeatedSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
-                repeatedSecret += secret;
-            }
-            keyBytes = Arrays.copyOf(repeatedSecret.getBytes(StandardCharsets.UTF_8), 32);
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] keyBytes = digest.digest(secret.getBytes(StandardCharsets.UTF_8));
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("Erro ao gerar chave JWT", e);
         }
-        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateToken(UserDetails userDetails) {

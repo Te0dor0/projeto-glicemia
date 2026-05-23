@@ -44,9 +44,7 @@ class AuthController {
             String token = jwtUtil.generateToken(userDetails);
             String role = userDetails.getAuthorities().iterator().next().getAuthority();
 
-            return ResponseEntity.ok()
-                    .header("Content-Type", "application/json")
-                    .body(LoginResponse.builder()
+            return ResponseEntity.ok(LoginResponse.builder()
                         .token(token)
                         .role(role)
                         .username(req.username)
