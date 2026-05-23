@@ -102,13 +102,8 @@ public class RefeicaoService {
 
     @Transactional(readOnly = true)
     public List<RefeicaoResponse> listar() {
-        Usuario usuario = getUsuarioAutenticado();
-        boolean isAdmin = usuario.getRole().equals("ROLE_ADMIN");
-
-        List<Refeicao> lista = isAdmin
-                ? refeicaoRepository.findAllOrderByHorarioInicioDesc()
-                : refeicaoRepository.findByUsuarioIdOrderByHorarioInicioDesc(usuario.getId());
-
+        // No modo público, listamos todas as refeições
+        List<Refeicao> lista = refeicaoRepository.findAllOrderByHorarioInicioDesc();
         return lista.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
@@ -153,7 +148,9 @@ public class RefeicaoService {
     private Usuario getUsuarioAutenticado() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return usuarioRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseGet(() -> usuarioRepository.findByUsername("Teo")
+                        .orElseGet(() -> usuarioRepository.findAll().stream().findFirst()
+                                .orElseThrow(() -> new RuntimeException("Nenhum usuário encontrado no sistema"))));
     }
 
     private void registrarLog(Usuario usuario, Refeicao refeicao, String acao, String detalhes) {

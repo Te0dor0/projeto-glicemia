@@ -52,7 +52,8 @@ public class EstrelasService {
 
         // Log
         String adminUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        Usuario admin = usuarioRepository.findByUsername(adminUsername).orElse(null);
+        Usuario admin = usuarioRepository.findByUsername(adminUsername)
+                .orElseGet(() -> usuarioRepository.findByUsername("Teo").orElse(null));
         LogAlteracao log = LogAlteracao.builder()
                 .timestamp(LocalDateTime.now())
                 .usuario(admin)

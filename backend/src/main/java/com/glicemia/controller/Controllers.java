@@ -190,14 +190,8 @@ class PendenciasController {
 
     @GetMapping
     public ResponseEntity<List<PendenciaResponse>> getPendencias() {
-        String username = org.springframework.security.core.context.SecurityContextHolder
-                .getContext().getAuthentication().getName();
-        var usuario = usuarioRepository.findByUsername(username).orElseThrow();
-        boolean isAdmin = usuario.getRole().equals("ROLE_ADMIN");
-
-        var pendencias = isAdmin
-                ? pendencia2HRepository.findAllByStatus(com.glicemia.entity.Pendencia2H.StatusPendencia.PENDENTE)
-                : pendencia2HRepository.findByUsuarioIdAndStatus(usuario.getId(), com.glicemia.entity.Pendencia2H.StatusPendencia.PENDENTE);
+        // No modo público, mostramos todas as pendências
+        var pendencias = pendencia2HRepository.findAllByStatus(com.glicemia.entity.Pendencia2H.StatusPendencia.PENDENTE);
 
         var resp = pendencias.stream().map(p -> PendenciaResponse.builder()
                 .id(p.getId())

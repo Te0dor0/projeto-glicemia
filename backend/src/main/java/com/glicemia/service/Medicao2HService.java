@@ -46,7 +46,8 @@ public class Medicao2HService {
 
         // Log
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Usuario usuario = usuarioRepository.findByUsername(username).orElse(null);
+        Usuario usuario = usuarioRepository.findByUsername(username)
+                .orElseGet(() -> usuarioRepository.findByUsername("Teo").orElse(null));
         LogAlteracao log = LogAlteracao.builder()
                 .timestamp(LocalDateTime.now())
                 .usuario(usuario)
