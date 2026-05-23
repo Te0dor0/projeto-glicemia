@@ -35,26 +35,8 @@ class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
-        log.info("Tentativa de login para o usuário: {}", req.username);
-        try {
-            authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(req.username, req.password));
-            log.info("Autenticação bem-sucedida para: {}", req.username);
-        } catch (AuthenticationException e) {
-            log.warn("Falha na autenticação para {}: {}", req.username, e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("{\"error\": \"Credenciais inválidas\"}");
-        }
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(req.username);
-        String token = jwtUtil.generateToken(userDetails);
-        String role = userDetails.getAuthorities().iterator().next().getAuthority();
-
-        return ResponseEntity.ok(LoginResponse.builder()
-                .token(token)
-                .role(role)
-                .username(req.username)
-                .build());
+        log.info("Teste de conectividade para: {}", req.username);
+        return ResponseEntity.ok("{\"message\": \"Conectado ao backend\"}");
     }
 }
 
