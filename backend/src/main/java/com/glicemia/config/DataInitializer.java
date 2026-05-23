@@ -37,13 +37,17 @@ public class DataInitializer implements CommandLineRunner {
         Usuario savedLui = usuarioRepository.save(lui);
 
         // Inicializa estrelas de Lui se não existirem
-        if (estrelRepository.findAll().stream().noneMatch(e -> e.getUsuario().getUsername().equals("Lui"))) {
-            Estrela estrela = Estrela.builder()
-                    .quantidade(0)
-                    .usuario(savedLui)
-                    .build();
-            estrelRepository.save(estrela);
-            log.info("✅ Estrelas do usuário 'Lui' inicializadas.");
+        try {
+            if (estrelRepository.findAll().stream().noneMatch(e -> e.getUsuario() != null && "Lui".equals(e.getUsuario().getUsername()))) {
+                Estrela estrela = Estrela.builder()
+                        .quantidade(0)
+                        .usuario(savedLui)
+                        .build();
+                estrelRepository.save(estrela);
+                log.info("✅ Estrelas do usuário 'Lui' inicializadas.");
+            }
+        } catch (Exception e) {
+            log.error("Erro ao inicializar estrelas para Lui: {}", e.getMessage());
         }
         log.info("✅ Usuário 'Lui' configurado com sucesso.");
 
