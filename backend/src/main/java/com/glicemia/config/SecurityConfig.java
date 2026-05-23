@@ -40,12 +40,8 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/login", "/error").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/api/login").permitAll()
-                .requestMatchers("/error").permitAll()
-                .requestMatchers("/api/estrelas/add", "/api/estrelas/remove").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/refeicoes/**").hasRole("ADMIN")
-                .requestMatchers("/api/logs").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
