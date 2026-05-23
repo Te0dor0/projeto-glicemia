@@ -35,8 +35,38 @@ class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
-        log.info("Teste de conectividade para: {}", req.username);
-        return ResponseEntity.ok("{\"message\": \"Conectado ao backend\"}");
+        log.info("Iniciando processo de login para: {}", req.username);
+        try {
+            if (req.username == null || req.password == null) {
+                log.warn("Tentativa de login com campos nulos");
+                return ResponseEntity.badRequest().body("{\"error\": \"Usuário e senha são obrigatórios\"}");
+            }
+
+            authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(req.username, req.password));
+            
+            log.info("Autenticação via AuthenticationManager bem-sucedida para: {}", req.username);
+
+            UserDetails userDetails = userDetailsService.loadUserByUsername(req.username);
+            String token = jwtUtil.generateToken(userDetails);
+            String role = userDetails.getAuthorities().iterator().next().getAuthority();
+
+            log.info("Token gerado com sucesso para: {}", req.username);
+
+            return ResponseEntity.ok(LoginResponse.builder()
+                    .token(token)
+                    .role(role)
+                    .username(req.username)
+                    .build());
+        } catch (AuthenticationException e) {
+            log.warn("Falha na autenticação para {}: {}", req.username, e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("{\"error\": \"Credenciais inválidas\"}");
+        } catch (Exception e) {
+            log.error("Erro inesperado no login para {}: {}", req.username, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("{\"error\": \"Erro interno no servidor: " + e.getMessage() + "\"}");
+        }
     }
 }
 
