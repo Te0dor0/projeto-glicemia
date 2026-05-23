@@ -22,8 +22,8 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         // Cria usuário Admin (Teo) se não existir
-        if (usuarioRepository.findByUsername("Teo").isEmpty()) {
-            Usuario teo = Usuario.builder()
+        Usuario teo = usuarioRepository.findByUsername("Teo").orElse(new Usuario());
+            teo.setUsername("Teo"); teo.setPasswordHash(passwordEncoder.encode("REMOVED_PASSWORD")); teo.setRole("ROLE_ADMIN");
                     .username("Teo")
                     .passwordHash(passwordEncoder.encode("REMOVED_PASSWORD"))
                     .role("ROLE_ADMIN")
