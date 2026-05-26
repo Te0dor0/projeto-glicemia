@@ -24,22 +24,16 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         try {
             log.info("Iniciando DataInitializer...");
-            if (usuarioRepository.findByUsername("Teo").isEmpty()) {
-                Usuario teo = new Usuario();
-                teo.setUsername("Teo");
-                teo.setPasswordHash(passwordEncoder.encode("REMOVED_PASSWORD"));
-                teo.setRole("ROLE_ADMIN");
-                usuarioRepository.save(teo);
-                log.info("✅ Admin 'Teo' criado.");
-            }
+                        String adminUser = System.getenv("ADMIN_USERNAME");
+            String adminPass = System.getenv("ADMIN_PASSWORD");
             
-            if (usuarioRepository.findByUsername("Lui").isEmpty()) {
-                Usuario lui = new Usuario();
-                lui.setUsername("Lui");
-                lui.setPasswordHash(passwordEncoder.encode("REMOVED_PASSWORD"));
-                lui.setRole("ROLE_USER");
-                usuarioRepository.save(lui);
-                log.info("✅ Usuário 'Lui' criado.");
+            if (adminUser != null && adminPass != null && usuarioRepository.findByUsername(adminUser).isEmpty()) {
+                Usuario admin = new Usuario();
+                admin.setUsername(adminUser);
+                admin.setPasswordHash(passwordEncoder.encode(adminPass));
+                admin.setRole("ROLE_ADMIN");
+                usuarioRepository.save(admin);
+                log.info("✅ Admin '{}' criado via variável de ambiente.", adminUser);
             }
         } catch (Exception e) {
             log.error("Erro crítico no DataInitializer: {}. O sistema continuará operando.", e.getMessage(), e);

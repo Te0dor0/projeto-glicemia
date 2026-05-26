@@ -6,10 +6,10 @@ services:
     container_name: glicemia-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: glicemia_db
-      MYSQL_USER: glicemia
-      MYSQL_PASSWORD: REMOVED_PASSWORD
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-glicemia_db}
+      MYSQL_USER: ${MYSQL_USER:-glicemia}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -30,12 +30,14 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DATABASE_URL: jdbc:mysql://mysql-db:3306/glicemia_db?useSSL=false&serverTimezone=America/Sao_Paulo&allowPublicKeyRetrieval=true
-      DATABASE_USERNAME: glicemia
-      DATABASE_PASSWORD: REMOVED_PASSWORD
-      JWT_SECRET: REMOVED_SECRET
-      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:5500
+      DATABASE_URL: jdbc:mysql://mysql-db:3306/${MYSQL_DATABASE:-glicemia_db}?useSSL=false&serverTimezone=America/Sao_Paulo&allowPublicKeyRetrieval=true
+      DATABASE_USERNAME: ${MYSQL_USER:-glicemia}
+      DATABASE_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:5500}
       EXCEL_PATH: /app/data/dados.xlsx
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     volumes:
       - excel_data:/app/data
     depends_on:

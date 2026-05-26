@@ -1,0 +1,33 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Docker & Environment
+.env
+node_modules/
+
+# Logs & Temporary
+logs/
+*.log
+tmp/
+
+# Data
+backend/dados.xlsx
+backend/data/
+mysql_data/
+excel_data/
+
+# OS
+.DS_Store
+Thumbs.db
